@@ -6,6 +6,7 @@ final class NutritionReviewViewModel {
     var isEditing = false
     var isSaving = false
     var errorMessage: String?
+    var aiPredictions: [FoodRecognitionResult] = []
 
     var editedName: String
     var editedCalories: String
@@ -19,11 +20,12 @@ final class NutritionReviewViewModel {
     private let logFoodUseCase: LogFoodUseCase
     var onSave: (() -> Void)?
 
-    init(foodItem: FoodItem, logFoodUseCase: LogFoodUseCase? = nil) {
+    init(foodItem: FoodItem, aiPredictions: [FoodRecognitionResult] = [], logFoodUseCase: LogFoodUseCase? = nil) {
         let context = Self.createDefaultContext()
         let repository = FoodRepository(modelContext: context)
         let useCase = logFoodUseCase ?? LogFoodUseCase(repository: repository)
         self.foodItem = foodItem
+        self.aiPredictions = aiPredictions
         self.logFoodUseCase = useCase
 
         self.editedName = foodItem.name
@@ -34,6 +36,23 @@ final class NutritionReviewViewModel {
         self.editedFiber = String(format: "%.1f", foodItem.nutrition.fiber)
         self.editedSugar = String(format: "%.1f", foodItem.nutrition.sugar)
         self.editedSodium = String(format: "%.0f", foodItem.nutrition.sodium)
+    }
+
+    func applyPrediction(_ prediction: FoodRecognitionResult) {
+        guard let nutrition = prediction.mappedNutrition else { return }
+        foodItem.name = prediction.mappedFoodItem?.displayName ?? prediction.foodName
+        foodItem.nutrition = nutrition
+        foodItem.confidence = prediction.confidence
+        foodItem.foodCode = prediction.mappedFoodItem?.code
+
+        editedName = foodItem.name
+        editedCalories = String(format: "%.0f", foodItem.nutrition.calories)
+        editedProtein = String(format: "%.1f", foodItem.nutrition.protein)
+        editedCarbs = String(format: "%.1f", foodItem.nutrition.carbs)
+        editedFats = String(format: "%.1f", foodItem.nutrition.fats)
+        editedFiber = String(format: "%.1f", foodItem.nutrition.fiber)
+        editedSugar = String(format: "%.1f", foodItem.nutrition.sugar)
+        editedSodium = String(format: "%.0f", foodItem.nutrition.sodium)
     }
 
     private static func createDefaultContext() -> ModelContext {
@@ -118,10 +137,15 @@ final class NutritionReviewViewModel {
 import SwiftData
 
 extension NutritionReviewViewModel {
-    convenience init(foodItem: FoodItem, modelContext: ModelContext, onSave: (() -> Void)? = nil) {
+    convenience init(
+        foodItem: FoodItem,
+        aiPredictions: [FoodRecognitionResult] = [],
+        modelContext: ModelContext,
+        onSave: (() -> Void)? = nil
+    ) {
         let repository = FoodRepository(modelContext: modelContext)
         let useCase = LogFoodUseCase(repository: repository)
-        self.init(foodItem: foodItem, logFoodUseCase: useCase)
+        self.init(foodItem: foodItem, aiPredictions: aiPredictions, logFoodUseCase: useCase)
         self.onSave = onSave
     }
 }

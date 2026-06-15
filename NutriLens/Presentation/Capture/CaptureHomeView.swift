@@ -25,8 +25,11 @@ struct CaptureHomeView: View {
             .navigationTitle("Capture Food")
             .navigationBarTitleDisplayMode(.large)
             .navigationDestination(isPresented: $navigateToReview) {
-                if case .review(let foodItem) = viewModel.state {
-                    NutritionReviewView(foodItem: foodItem) {
+                if case .review(let foodItem, let predictions) = viewModel.state {
+                    NutritionReviewView(
+                        foodItem: foodItem,
+                        aiPredictions: predictions
+                    ) {
                         viewModel.reset()
                         navigateToReview = false
                     }
@@ -43,6 +46,13 @@ struct CaptureHomeView: View {
             .onChange(of: viewModel.state) { _, newState in
                 if case .review = newState {
                     navigateToReview = true
+                }
+            }
+            .overlay {
+                if case .processing = viewModel.state {
+                    processingOverlay(message: "Processing image...")
+                } else if case .aiClassifying = viewModel.state {
+                    processingOverlay(message: "Identifying food...")
                 }
             }
         }
@@ -132,6 +142,25 @@ struct CaptureHomeView: View {
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.lg))
+    }
+
+    private func processingOverlay(message: String) -> some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: AppTheme.Spacing.md) {
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .tint(.white)
+                Text(message)
+                    .font(.headline)
+                    .foregroundStyle(.white)
+            }
+            .padding(AppTheme.Spacing.xl)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.lg))
+        }
     }
 
     private var manualEntryButton: some View {

@@ -20,7 +20,8 @@ enum CaptureState: Equatable {
     case idle
     case capturing
     case processing
-    case review(FoodItem)
+    case aiClassifying
+    case review(FoodItem, aiPredictions: [FoodRecognitionResult])
     case confirmed
     case cancelled
     case error(String)

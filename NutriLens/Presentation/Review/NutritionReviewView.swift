@@ -6,21 +6,31 @@ struct NutritionReviewView: View {
     @Environment(\.dismiss) private var dismiss
 
     let foodItem: FoodItem
+    let aiPredictions: [FoodRecognitionResult]
     var onDismiss: (() -> Void)?
 
     @State private var viewModel: NutritionReviewViewModel
     @State private var showSearchView = false
 
-    init(foodItem: FoodItem, onDismiss: (() -> Void)? = nil) {
+    init(
+        foodItem: FoodItem,
+        aiPredictions: [FoodRecognitionResult] = [],
+        onDismiss: (() -> Void)? = nil
+    ) {
         self.foodItem = foodItem
+        self.aiPredictions = aiPredictions
         self.onDismiss = onDismiss
-        self._viewModel = State(initialValue: NutritionReviewViewModel(foodItem: foodItem))
+        self._viewModel = State(initialValue: NutritionReviewViewModel(foodItem: foodItem, aiPredictions: aiPredictions))
     }
 
     var body: some View {
         ScrollView {
             VStack(spacing: AppTheme.Spacing.lg) {
                 foodImageSection
+
+                if !viewModel.aiPredictions.isEmpty {
+                    aiPredictionsSection
+                }
 
                 nutritionSection
 
@@ -53,10 +63,70 @@ struct NutritionReviewView: View {
         .onAppear {
             viewModel = NutritionReviewViewModel(
                 foodItem: foodItem,
+                aiPredictions: aiPredictions,
                 modelContext: modelContext
             ) {
                 onDismiss?()
                 dismiss()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var aiPredictionsSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
+            HStack {
+                Image(systemName: "sparkles")
+                    .foregroundStyle(AppTheme.Colors.primary)
+                Text("AI Suggestions")
+                    .font(.headline)
+                Spacer()
+            }
+
+            ForEach(viewModel.aiPredictions.prefix(3)) { prediction in
+                Button {
+                    viewModel.applyPrediction(prediction)
+                } label: {
+                    HStack(spacing: AppTheme.Spacing.md) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(prediction.mappedFoodItem?.displayName ?? prediction.foodName)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            if let nutrition = prediction.mappedNutrition {
+                                Text("\(Int(nutrition.calories)) kcal per 100g")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        Spacer()
+
+                        Text(prediction.confidenceDisplay)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                prediction.isHighConfidence
+                                ? Color.green.opacity(0.15)
+                                : prediction.isMediumConfidence
+                                ? Color.orange.opacity(0.15)
+                                : Color.red.opacity(0.15)
+                            )
+                            .foregroundStyle(
+                                prediction.isHighConfidence
+                                ? .green
+                                : prediction.isMediumConfidence
+                                ? .orange
+                                : .red
+                            )
+                            .clipShape(Capsule())
+                    }
+                    .padding()
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.md))
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -250,7 +320,12 @@ struct NutritionReviewView: View {
                     sugar: 10,
                     sodium: 800
                 )
-            )
+            ),
+            aiPredictions: [
+                FoodRecognitionResult(foodName: "Chicken Salad", confidence: 0.92),
+                FoodRecognitionResult(foodName: "Caesar Salad", confidence: 0.75),
+                FoodRecognitionResult(foodName: "Garden Salad", confidence: 0.45)
+            ]
         )
     }
     .modelContainer(for: [FoodEntryModel.self, NutritionGoalModel.self], inMemory: true)

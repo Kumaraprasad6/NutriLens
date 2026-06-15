@@ -15,11 +15,34 @@ final class CaptureViewModel {
 
     private let captureFoodUseCase: CaptureFoodUseCase
 
-    init(captureFoodUseCase: CaptureFoodUseCase = CaptureFoodUseCase(
-        parsingService: NutritionParsingService()
-    )) {
-        self.captureFoodUseCase = captureFoodUseCase
+    init(captureFoodUseCase: CaptureFoodUseCase? = nil) {
+        let modelContext = Self.createModelContext()
+        let databaseService = IFCTDatabaseService(modelContext: modelContext)
+        let recognitionService = CoreMLFoodRecognitionService()
+        let mappingService = AIToIFCTMappingService()
+        self.captureFoodUseCase = captureFoodUseCase ?? CaptureFoodUseCase(
+            parsingService: NutritionParsingService(),
+            recognitionService: recognitionService,
+            mappingService: mappingService,
+            databaseService: databaseService
+        )
         checkCameraPermission()
+    }
+
+    private static func createModelContext() -> ModelContext {
+        do {
+            let schema = Schema([IFCTFoodModel.self, FoodEntryModel.self, NutritionGoalModel.self])
+            let container = try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)])
+            return ModelContext(container)
+        } catch {
+            do {
+                let schema = Schema([IFCTFoodModel.self, FoodEntryModel.self, NutritionGoalModel.self])
+                let container = try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+                return ModelContext(container)
+            } catch {
+                fatalError("Could not create ModelContainer: \(error)")
+            }
+        }
     }
 
     var canUseCamera: Bool {
@@ -81,9 +104,12 @@ final class CaptureViewModel {
 
     private func processImage(_ data: Data) async {
         do {
-            let foodItem = try await captureFoodUseCase.execute(imageData: data)
             await MainActor.run {
-                state = .review(foodItem)
+                state = .aiClassifying
+            }
+            let (foodItem, predictions) = try await captureFoodUseCase.execute(imageData: data)
+            await MainActor.run {
+                state = .review(foodItem, aiPredictions: predictions)
             }
         } catch {
             await MainActor.run {
@@ -112,7 +138,7 @@ final class CaptureViewModel {
             sugar: sugar,
             sodium: sodium
         )
-        state = .review(entry)
+        state = .review(entry, aiPredictions: [])
     }
 
     func reset() {

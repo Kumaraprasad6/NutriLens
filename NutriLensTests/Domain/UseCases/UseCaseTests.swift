@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 @testable import NutriLens
 
 final class LogFoodUseCaseTests: XCTestCase {
@@ -154,7 +155,15 @@ final class ManageGoalsUseCaseTests: XCTestCase {
 final class CaptureFoodUseCaseTests: XCTestCase {
     func testCreateManualEntry() {
         let parsingService = MockParsingService()
-        let useCase = CaptureFoodUseCase(parsingService: parsingService)
+        let recognitionService = MockRecognitionService()
+        let mappingService = MockMappingService()
+        let databaseService = MockDatabaseService()
+        let useCase = CaptureFoodUseCase(
+            parsingService: parsingService,
+            recognitionService: recognitionService,
+            mappingService: mappingService,
+            databaseService: databaseService
+        )
 
         let entry = useCase.createManualEntry(
             name: "Test Food",
@@ -171,6 +180,28 @@ final class CaptureFoodUseCaseTests: XCTestCase {
         XCTAssertEqual(entry.nutrition.calories, 500)
         XCTAssertEqual(entry.nutrition.protein, 30)
     }
+}
+
+class MockRecognitionService: FoodRecognitionServiceProtocol {
+    func classify(image: UIImage) async throws -> [FoodRecognitionResult] {
+        []
+    }
+    func isModelAvailable() -> Bool { false }
+}
+
+class MockMappingService: AIToIFCTMappingProtocol {
+    func map(predictions: [FoodRecognitionResult], databaseService: IFCTDatabaseServiceProtocol) async -> [FoodRecognitionResult] {
+        predictions
+    }
+}
+
+class MockDatabaseService: IFCTDatabaseServiceProtocol {
+    func searchFoods(query: String) async throws -> [IFCTFoodItem] { [] }
+    func getFoodByCode(code: String) async throws -> IFCTFoodItem? { nil }
+    func getFoodsByGroup(group: String) async throws -> [IFCTFoodItem] { [] }
+    func getAllFoodGroups() async throws -> [String] { [] }
+    func isDatabaseImported() async -> Bool { false }
+    func importDatabase() async throws {}
 }
 
 func createTestFoodEntry(

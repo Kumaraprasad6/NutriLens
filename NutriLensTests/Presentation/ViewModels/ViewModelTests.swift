@@ -168,9 +168,10 @@ final class CaptureViewModelTests: XCTestCase {
             sodium: 800
         )
 
-        if case .review(let foodItem) = viewModel.state {
+        if case .review(let foodItem, let predictions) = viewModel.state {
             XCTAssertEqual(foodItem.name, "Test Food")
             XCTAssertEqual(foodItem.nutrition.calories, 500)
+            XCTAssertTrue(predictions.isEmpty)
         } else {
             XCTFail("Expected state to be review")
         }
