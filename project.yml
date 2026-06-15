@@ -1,0 +1,77 @@
+name: NutriLens
+options:
+  bundleIdPrefix: com.nutrilens
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+    INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+    INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait"
+    INFOPLIST_KEY_NSCameraUsageDescription: "NutriLens needs camera access to capture food images"
+    INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "NutriLens needs photo library access to select food images"
+
+targets:
+  NutriLens:
+    type: application
+    platform: iOS
+    sources:
+      - path: NutriLens
+        excludes:
+          - "**/.DS_Store"
+    resources:
+      - path: NutriLens/Resources/Data
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nutrilens.app
+        INFOPLIST_KEY_CFBundleDisplayName: NutriLens
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SWIFT_EMIT_LOC_STRINGS: YES
+        ENABLE_PREVIEWS: YES
+    info:
+      path: NutriLens/Info.plist
+      properties:
+        UILaunchScreen: {}
+        NSCameraUsageDescription: "NutriLens needs camera access to capture food images"
+        NSPhotoLibraryUsageDescription: "NutriLens needs photo library access to select food images"
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+
+  NutriLensTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: NutriLensTests
+        excludes:
+          - "**/.DS_Store"
+    dependencies:
+      - target: NutriLens
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nutrilens.app.tests
+
+schemes:
+  NutriLens:
+    build:
+      targets:
+        NutriLens: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - NutriLensTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
